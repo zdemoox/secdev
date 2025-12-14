@@ -1,4 +1,5 @@
 name: CI
+
 on:
   pull_request:
   push:
@@ -12,14 +13,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  ci:
     runs-on: ubuntu-latest
+
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Lint & Format
+        run: |
+          ruff check --output-format=github .
+          black --check .
+          isort --check-only .
+
+      - name: Tests
+        run: |
+          pytest -q
+
+      - name: Pre-commit (all files)
+        run: |
+          pre-commit run --all-files
+
       - name: Build Docker image
         run: |
           docker build -t secdev-study-planner:ci .
 
-      - name: Debug: try import httpx in image
+      - name: Debug: import runtime deps in image
         run: |
           docker run --rm secdev-study-planner:ci python -c "import httpx; print('httpx OK', httpx.__version__)"
 
@@ -54,8 +84,7 @@ jobs:
           docker ps -a
           docker logs app_ci || true
 
-      - name: Cleanup
+      - name: Cleanup container
         if: always()
         run: |
           docker rm -f app_ci || true
-
