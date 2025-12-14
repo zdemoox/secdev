@@ -53,7 +53,7 @@ jobs:
         run: |
           docker build -t secdev-study-planner:ci .
 
-      - name: Debug: import httpx in image
+      - name: Debug - import httpx in image
         run: |
           docker run --rm secdev-study-planner:ci \
             python -c "import httpx; print('httpx OK', httpx.__version__)"
