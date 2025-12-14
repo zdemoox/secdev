@@ -1,8 +1,32 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: secdev-study-planner:local
     ports:
       - "8000:8000"
     environment:
-      - PYTHONUNBUFFERED=1
-    profiles: ["dev"]
+      - RATE_LIMIT_MAX=60
+      - RATE_LIMIT_WINDOW_SECONDS=60
+      - UPLOAD_DIR=/app/uploads
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - uploads:/app/uploads
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 200
+
+volumes:
+  uploads:
