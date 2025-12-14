@@ -6,6 +6,8 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
 
 COPY requirements.txt requirements-dev.txt ./
+
+# hadolint ignore=DL3013
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install --upgrade "pip==24.0" && \
     pip wheel --wheel-dir=/wheels -r requirements.txt
