@@ -74,6 +74,10 @@ jobs:
         with:
           name: trivy-report
           path: trivy-results.sarif
+          
+      - name: Build Docker image
+        run: |
+          docker build -t secdev-study-planner:ci .
 
       - name: Run container (detached)
         run: |
