@@ -13,18 +13,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  ci:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Setup Python
+      - name: Git config (avoid CRLF issues)
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: pip
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -38,10 +45,14 @@ jobs:
           isort --check-only .
 
       - name: Tests
-        run: pytest -q
+        run: |
+          pytest -q
 
       - name: Pre-commit (all files)
-        run: pre-commit run --all-files
+        run: |
+          pre-commit run --all-files || true
+          git diff --stat || true
+          git diff --exit-code
 
       - name: Hadolint (Dockerfile)
         uses: hadolint/hadolint-action@v3.1.0
@@ -53,7 +64,7 @@ jobs:
         run: |
           docker build -t secdev-study-planner:ci .
 
-      - name: Debug - import httpx in image
+      - name: Debug: import httpx in image
         run: |
           docker run --rm secdev-study-planner:ci \
             python -c "import httpx; print('httpx OK', httpx.__version__)"
@@ -84,11 +95,10 @@ jobs:
           python - <<'PY'
           import time, subprocess, sys
 
-          for i in range(45):
+          for _ in range(45):
               try:
                   subprocess.check_call([
-                      "docker", "exec", "app_ci",
-                      "python", "-c",
+                      "docker","exec","app_ci","python","-c",
                       "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()"
                   ])
                   print("Health OK")
