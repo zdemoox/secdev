@@ -74,20 +74,27 @@ jobs:
           echo "uid=$uid"
           test "$uid" != "0"
 
-      - name: Check health endpoint
+      - name: Wait for container to be ready (internal /health)
         run: |
           python - <<'PY'
-          import time, urllib.request
-          url="http://127.0.0.1:8000/health"
-          for _ in range(30):
+          import time, subprocess, sys
+          for _ in range(45):
               try:
-                  urllib.request.urlopen(url, timeout=2).read()
+                  subprocess.check_call([
+                      "docker","exec","app_ci","python","-c",
+                      "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()"
+                  ])
                   print("OK")
-                  raise SystemExit(0)
+                  sys.exit(0)
               except Exception:
                   time.sleep(1)
           raise SystemExit("Health endpoint did not become ready")
           PY
+      - name: Dump container logs (on failure)
+        if: failure()
+        run: |
+          docker ps -a
+          docker logs app_ci || true
 
       - name: Cleanup container
         if: always()
