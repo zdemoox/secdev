@@ -1,6 +1,6 @@
 # Git Workflow
 
 - Работа только через PR
-- Ветки p02-study-planner
+- Ветки p<nn>-<topic>
 - Conventional Commits
 - Merge после зелёного CI и ревью

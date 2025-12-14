@@ -1,26 +1,30 @@
-# ADR-003: Secrets outside code
-Date: 2025-12-14
-Status: Accepted
+# ADR-003: Секреты и конфигурация только вне кода
+Дата: 2025-12-14
+Статус: Accepted
 
 ## Context
-Secrets leakage risk.
+В Threat Model (P04) риск **R8 (утечка секретов)** связан с репозиторием и пайплайном.
 
 ## Decision
-Use env vars and CI secrets.
+- Секреты не храним в коде и не логируем.
+- Конфигурация — через переменные окружения/CI secrets.
+- В CI используем gitleaks/semgrep.
 
 ## Alternatives
-- Hardcoded secrets
-- Encrypted config
+- Хардкод (запрещено)
+- Шифрованный конфиг в репозитории
+- Vault/KMS (production)
 
 ## Consequences
-Lower leakage risk.
+Нужно дисциплинированно поддерживать окружения и документацию.
 
 ## Security impact
-Mitigates R8.
+Снижаем вероятность реализации **R8**.
 
 ## Rollout plan
-Enforce gitleaks in CI.
+Документировать env и включать проверки секретов в CI.
 
 ## Links
-- NFR-07
-- Threat model: R8
+- NFR-07 (Секреты и конфигурация)
+- Threat Model: риск R8
+- Артефакты: `.gitleaks.toml`, `.semgrep.yaml`, `.env.example`
