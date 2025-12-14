@@ -1,27 +1,52 @@
-# ADR-001: Unified error envelope and correlation_id
-Date: 2025-12-14
-Status: Accepted
+# ADR-001: Единый error-envelope + correlation_id для всех ошибок API
+Дата: 2025-12-14
+Статус: Accepted
 
 ## Context
-API errors must not leak internal details and must be traceable.
+Study Planner предоставляет HTTP API. Для безопасной эксплуатации нам нужны:
+- единый формат ошибок без утечек внутренних деталей;
+- корреляция запросов для расследований (audit/debug);
+- воспроизводимая проверка через тесты и CI.
+
+В Threat Model (P04) риск **R4 (утечка деталей ошибок)** и **R3 (недостаточная трассируемость)** связаны с потоками F1/F5/F6.
 
 ## Decision
-Use a unified JSON error envelope with correlation_id.
+- Все ошибки (включая `HTTPException` и доменные ошибки) возвращаем в едином JSON error-envelope:
+  `{"error": {"code": "...", "message": "...", "correlation_id": "..."}}`
+- Корреляционный идентификатор берём из заголовка `X-Request-Id` (если задан клиентом/edge), иначе генерируем UUID.
+- `X-Request-Id` возвращаем в ответе, чтобы клиент мог сопоставлять запрос/ответ.
 
 ## Alternatives
-- Raw FastAPI errors
-- Full RFC7807
+1. **RFC7807 (Problem Details)** полностью:
+   - (+) стандартный формат, хорош для интеграций
+   - (−) потребует миграции контрактов/клиентов и тестов
+2. **Логировать только на сервере без возврата correlation_id**:
+   - (+) проще
+   - (−) хуже DX/поддержка, сложнее расследовать инциденты
+3. **Принимать correlation_id только от gateway**:
+   - (+) единый источник
+   - (−) усложняет локальную разработку и тестирование
 
 ## Consequences
-Improved debuggability, stable contract.
+Плюсы:
+- упрощается контракт ошибок и обработка на клиенте;
+- проще triage/инциденты (везде есть correlation_id).
+
+Минусы/компромиссы:
+- correlation_id становится частью внешнего контракта (нужно поддерживать обратную совместимость).
 
 ## Security impact
-Mitigates R4, partially R3.
+- Снижаем риск **R4** (уменьшаем вероятность утечки внутренних деталей).
+- Улучшаем расследуемость (частично закрываем **R3**).
+- Уменьшаем шанс попадания чувствительных данных в error message (политика маскирования).
 
 ## Rollout plan
-Enable middleware and add tests.
+1. Включить middleware корреляции и общий обработчик ошибок.
+2. Добавить контрактные тесты на наличие `correlation_id` и заголовка `X-Request-Id`.
+3. Обновить документацию API при появлении клиентов.
 
 ## Links
-- NFR-02, NFR-05
-- Threat model: R3, R4
-- tests/test_errors.py
+- NFR-02 (Единый формат ошибок без утечек), NFR-05 (Логи и корреляция)
+- Threat Model: F1/F5/F6, риски R3/R4
+- Реализация: `app/main.py` (middleware + handlers)
+- Тесты: `tests/test_errors.py::test_error_has_correlation_id_and_header`, `tests/test_errors.py::test_respects_client_provided_request_id`
