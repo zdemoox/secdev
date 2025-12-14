@@ -7,7 +7,7 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
 
 COPY requirements.txt requirements-dev.txt ./
 RUN --mount=type=cache,target=/root/.cache/pip \
-    python -m pip install --upgrade pip && \
+    python -m pip install --upgrade "pip==24.0" && \
     pip wheel --wheel-dir=/wheels -r requirements.txt
 
 FROM python:3.11-slim AS runtime
