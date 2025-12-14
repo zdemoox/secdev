@@ -27,6 +27,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r requirements-dev.txt
 
+      - name: Debug. Show requirements and httpx inside image
+        run: |
+          echo "---- requirements.txt (from repo) ----"
+          sed -n '1,120p' requirements.txt
+          echo "---- try import httpx in image ----"
+          docker run --rm secdev-study-planner:ci python -c "import httpx; print('httpx OK', httpx.__version__)"
+
+      - name: Debug. Inspect image for installed packages
+        run: |
+          docker run --rm secdev-study-planner:ci python -m pip freeze | sort | sed -n '1,200p'
+
       - name: Lint & Format
         run: |
           ruff check --output-format=github .
