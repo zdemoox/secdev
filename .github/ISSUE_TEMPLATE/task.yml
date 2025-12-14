@@ -1,0 +1,11 @@
+name: Task
+description: Учебная задача
+title: "[P02] "
+labels: ["task"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Цель
+    validations:
+      required: true
