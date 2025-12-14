@@ -21,7 +21,9 @@ def _get_client_key(request: Request) -> str:
     return "unknown"
 
 
-def create_app(rate_limit_max: int = 60, rate_limit_window_seconds: int = 60) -> FastAPI:
+def create_app(
+    rate_limit_max: int = 60, rate_limit_window_seconds: int = 60
+) -> FastAPI:
     app = FastAPI(title="Study Planner API", version="0.1.0")
 
     app.state.rate_limiter = {}
