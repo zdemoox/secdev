@@ -13,18 +13,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"
+          cache: pip
 
       - name: Install dependencies
         run: |
@@ -38,39 +38,64 @@ jobs:
           isort --check-only .
 
       - name: Tests
-        run: |
-          pytest -q
+        run: pytest -q
 
       - name: Pre-commit (all files)
-        run: |
-          pre-commit run --all-files
+        run: pre-commit run --all-files
+
+      - name: Hadolint (Dockerfile)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: warning
 
       - name: Build Docker image
         run: |
           docker build -t secdev-study-planner:ci .
 
-      - name: Debug: import runtime deps in image
+      - name: Debug: import httpx in image
         run: |
-          docker run --rm secdev-study-planner:ci python -c "import httpx; print('httpx OK', httpx.__version__)"
+          docker run --rm secdev-study-planner:ci \
+            python -c "import httpx; print('httpx OK', httpx.__version__)"
+
+      - name: Trivy scan (SARIF)
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: secdev-study-planner:ci
+          format: sarif
+          output: trivy.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Upload Trivy report
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy.sarif
 
       - name: Run container (detached)
         run: |
-          docker run -d --name app_ci -p 8000:8000 secdev-study-planner:ci
+          docker run -d \
+            --name app_ci \
+            -p 8000:8000 \
+            secdev-study-planner:ci
 
       - name: Wait for container to be ready (internal /health)
         run: |
           python - <<'PY'
           import time, subprocess, sys
-          for _ in range(45):
+
+          for i in range(45):
               try:
                   subprocess.check_call([
-                      "docker","exec","app_ci","python","-c",
+                      "docker", "exec", "app_ci",
+                      "python", "-c",
                       "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()"
                   ])
-                  print("OK")
+                  print("Health OK")
                   sys.exit(0)
               except Exception:
                   time.sleep(1)
+
           raise SystemExit("Health endpoint did not become ready")
           PY
 
@@ -84,7 +109,7 @@ jobs:
           docker ps -a
           docker logs app_ci || true
 
-      - name: Cleanup container
+      - name: Cleanup
         if: always()
         run: |
           docker rm -f app_ci || true
