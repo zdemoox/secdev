@@ -1,0 +1,15 @@
+# policy/waivers.yml — waivers (исключения) для SCA по зависимостям
+# Используйте только time-limited waivers с понятным обоснованием и ссылкой на Issue/PR.
+# См. project/69_sbom-vuln-mgmt.md (политика SBOM & Vulnerability Management).
+
+waivers: []
+# Пример записи:
+# waivers:
+#   - id: "CVE-2024-XXXX"
+#     package: "example-lib"
+#     version: "1.2.3"
+#     severity: "High"
+#     reason: "Транзитивная зависимость; фикс пока недоступен; компонент не в прод-пути."
+#     issue: "https://github.com/<org>/<repo>/issues/123"
+#     expires_at: "2026-03-31"
+#     approved_by: "tutor@example.org"
