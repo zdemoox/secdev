@@ -1,0 +1,8 @@
+# security/trivy.yaml
+scan:
+  scanners:
+    - vuln
+  severity:
+    - CRITICAL
+    - HIGH
+format: "json"
